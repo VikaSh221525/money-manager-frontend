@@ -18,6 +18,14 @@ export const useAuthStore = create((set, get) => ({
             set({ user: res.data.user, token: res.data.token });
             console.log("User set in store after signup:", res.data.user);
 
+            // Initialize default categories for new user
+            try {
+                await axios.post("/categories/initialize");
+                console.log("Default categories initialized for new user");
+            } catch (catError) {
+                console.log("Categories initialization skipped or already exists:", catError.response?.data?.message);
+            }
+
             toast.success("SignUp successful ");
             return true;
         } catch (err) {

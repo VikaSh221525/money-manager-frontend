@@ -32,6 +32,15 @@ export const useCategoryStore = create((set, get) => ({
             }
 
             console.log("Parsed categories array:", categoriesArray);
+            
+            // If no categories exist, initialize default categories
+            if (categoriesArray.length === 0) {
+                console.log("No categories found, initializing default categories...");
+                await get().initializeDefaultCategories();
+                // Fetch categories again after initialization
+                return get().getCategories();
+            }
+            
             set({ categories: categoriesArray });
         } catch (err) {
             console.error("Get categories error:", err);
@@ -39,6 +48,25 @@ export const useCategoryStore = create((set, get) => ({
             toast.error(err.response?.data?.message || "Failed to fetch categories");
         } finally {
             set({ loading: false });
+        }
+    },
+
+    // Initialize default categories for new users
+    initializeDefaultCategories: async () => {
+        try {
+            const response = await axios.post('/categories/initialize');
+            console.log('Initialize categories response:', response.data);
+            toast.success('✅ Default categories created!');
+            return true;
+        } catch (error) {
+            console.error('Error initializing categories:', error);
+            if (error.response?.status === 400) {
+                // Categories already exist, just fetch them
+                return true;
+            } else {
+                toast.error(error.response?.data?.message || 'Failed to create categories');
+                return false;
+            }
         }
     },
 
