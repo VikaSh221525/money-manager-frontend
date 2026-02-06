@@ -5,13 +5,15 @@ import { WalletCards } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 
 function SignUpPage() {
-    const { signup, loading } = useAuthStore();
+    const { signup, silentLogout, loading } = useAuthStore();
     const { register, handleSubmit, formState: { errors } } = useForm();
     const navigate = useNavigate();
 
     const onSubmit = async (data) => {
         const success = await signup(data);
         if (success) {
+            // Logout immediately after signup so user must login (without showing toast)
+            silentLogout();
             navigate('/');
         }
     }

@@ -105,6 +105,10 @@ A comprehensive personal finance management application built with React and Nod
 - **bcryptjs** - Password hashing
 - **CORS** - Cross-origin resource sharing
 
+### Backend Repository & API
+- **Backend Repository**: [https://github.com/VikaSh221525/money-manager-backend](https://github.com/VikaSh221525/money-manager-backend)
+- **Live API**: [https://money-manager-backend.onrender.com](https://money-manager-backend.onrender.com)
+
 ---
 
 ## 🚀 Getting Started
@@ -140,6 +144,20 @@ Create a `.env` file in the root directory:
 VITE_API_URL=http://localhost:3000/api
 ```
 
+**For Production (using live backend):**
+```env
+VITE_API_URL=https://money-manager-backend.onrender.com/api
+```
+
+**Backend Repository**: The backend code is available at [https://github.com/VikaSh221525/money-manager-backend](https://github.com/VikaSh221525/money-manager-backend)
+
+If you want to run the backend locally, clone the backend repository:
+```bash
+git clone https://github.com/VikaSh221525/money-manager-backend.git
+cd money-manager-backend
+npm install
+```
+
 Create a `.env` file in the backend directory:
 ```env
 PORT=3000
@@ -148,17 +166,19 @@ JWT_SECRET=your_jwt_secret_key_here
 NODE_ENV=development
 ```
 
-5. **Start MongoDB**
+5. **Start MongoDB** (Only if running backend locally)
 ```bash
 # Make sure MongoDB is running
 mongod
 ```
 
-6. **Start Backend Server**
+6. **Start Backend Server** (Only if running backend locally)
 ```bash
-cd backend
+cd money-manager-backend
 npm run dev
 ```
+
+**Note**: You can skip steps 5-6 if you're using the live API at `https://money-manager-backend.onrender.com`
 
 7. **Start Frontend Development Server**
 ```bash

@@ -26,7 +26,7 @@ export const useAuthStore = create((set, get) => ({
                 console.log("Categories initialization skipped or already exists:", catError.response?.data?.message);
             }
 
-            toast.success("SignUp successful ");
+            toast.success("Account created successfully! Please login.");
             return true;
         } catch (err) {
             console.error("Signup error:", err);
@@ -62,6 +62,12 @@ export const useAuthStore = create((set, get) => ({
         localStorage.removeItem("token");
         set({ user: null, token: null });
         toast.success("Logged out successfully");
+    },
+
+    // Silent logout without toast (used internally)
+    silentLogout: () => {
+        localStorage.removeItem("token");
+        set({ user: null, token: null });
     },
 
     getMe: async () => {
