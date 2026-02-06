@@ -11,13 +11,38 @@ export const useDashboardStore = create((set, get) => ({
     timeRange: "month", // week, month, year
 
     // Get dashboard summary
-    getDashboardSummary: async () => {
+    getDashboardSummary: async (period = "monthly") => {
         set({ loading: true, error: null });
         try {
-            const res = await axios.get("/dashboard/summary");
-            set({ summary: res.data, loading: false });
-            return res.data;
+            const res = await axios.get(`/dashboard/summary?period=${period}`);
+            console.log("Dashboard summary response:", res.data);
+            
+            // Transform backend response to match frontend expectations
+            const income = res.data.summary?.income?.total || 0;
+            const expenses = res.data.summary?.expense?.total || 0;
+            const netIncome = res.data.summary?.netIncome || (income - expenses);
+            
+            // Calculate savings rate: if income > 0, show (netIncome / income) * 100
+            // Otherwise show 0
+            let savingsRate = 0;
+            if (income > 0) {
+                savingsRate = (netIncome / income) * 100;
+            }
+            
+            const transformedData = {
+                monthlyIncome: income,
+                monthlyExpenses: expenses,
+                netIncome: netIncome,
+                savingsRate: savingsRate,
+                categoryBreakdown: res.data.categoryBreakdown || [],
+                recentTransactions: res.data.recentTransactions || []
+            };
+            
+            console.log("Transformed summary data:", transformedData);
+            set({ summary: transformedData, loading: false });
+            return transformedData;
         } catch (err) {
+            console.error("Dashboard summary error:", err.response?.data || err);
             set({ error: err.response?.data?.message || "Failed to fetch dashboard summary" });
             toast.error(err.response?.data?.message || "Failed to fetch dashboard summary");
             set({ loading: false });
@@ -29,14 +54,53 @@ export const useDashboardStore = create((set, get) => ({
     getDashboardTrends: async (timeRange = "month") => {
         set({ loading: true, error: null });
         try {
-            const res = await axios.get(`/dashboard/trends?range=${timeRange}`);
+            // Map frontend timeRange to backend period
+            const periodMap = {
+                'week': 'weekly',
+                'month': 'monthly',
+                'year': 'yearly'
+            };
+            const period = periodMap[timeRange] || 'monthly';
+            
+            const res = await axios.get(`/dashboard/trends?period=${period}`);
+            console.log("Dashboard trends response:", res.data);
+            
+            // Transform backend response to match frontend expectations
+            const transformedData = {
+                data: (res.data.trends || []).map(item => ({
+                    period: item._id?.year 
+                        ? `${item._id.month || ''}/${item._id.year}` 
+                        : 'Unknown',
+                    income: item._id?.type === 'income' ? item.total : 0,
+                    expenses: item._id?.type === 'expense' ? item.total : 0
+                })),
+                period: res.data.period
+            };
+            
+            // Group by period and combine income/expense
+            const groupedData = {};
+            transformedData.data.forEach(item => {
+                if (!groupedData[item.period]) {
+                    groupedData[item.period] = { period: item.period, income: 0, expenses: 0 };
+                }
+                groupedData[item.period].income += item.income;
+                groupedData[item.period].expenses += item.expenses;
+            });
+            
+            const finalData = {
+                data: Object.values(groupedData),
+                period: res.data.period
+            };
+            
+            console.log("Transformed trends data:", finalData);
             set({ 
-                trends: res.data, 
+                trends: finalData, 
                 timeRange,
                 loading: false 
             });
-            return res.data;
+            return finalData;
         } catch (err) {
+            console.error("Dashboard trends error:", err.response?.data || err);
             set({ error: err.response?.data?.message || "Failed to fetch trends" });
             toast.error(err.response?.data?.message || "Failed to fetch trends");
             set({ loading: false });
@@ -49,9 +113,14 @@ export const useDashboardStore = create((set, get) => ({
         set({ loading: true, error: null });
         try {
             const res = await axios.get("/dashboard/accounts");
-            set({ accountsOverview: res.data, loading: false });
+            console.log("Accounts overview response:", res.data);
+            set({ 
+                accountsOverview: res.data,
+                loading: false 
+            });
             return res.data;
         } catch (err) {
+            console.error("Accounts overview error:", err.response?.data || err);
             set({ error: err.response?.data?.message || "Failed to fetch accounts overview" });
             toast.error(err.response?.data?.message || "Failed to fetch accounts overview");
             set({ loading: false });
@@ -63,14 +132,31 @@ export const useDashboardStore = create((set, get) => ({
     loadDashboardData: async (timeRange = "month") => {
         set({ loading: true });
         try {
-            const [summary, trends, accountsOverview] = await Promise.all([
-                get().getDashboardSummary(),
-                get().getDashboardTrends(timeRange),
-                get().getAccountsOverview()
+            // Map frontend timeRange to backend period
+            const periodMap = {
+                'week': 'weekly',
+                'month': 'monthly',
+                'year': 'yearly'
+            };
+            const period = periodMap[timeRange] || 'monthly';
+            
+            // Load accounts first to get total balance
+            const accountsOverview = await get().getAccountsOverview();
+            
+            // Then load summary and trends
+            const [summary, trends] = await Promise.all([
+                get().getDashboardSummary(period),
+                get().getDashboardTrends(timeRange)
             ]);
             
+            // Merge account balance into summary
+            const finalSummary = {
+                ...summary,
+                totalBalance: accountsOverview?.totalBalance || 0
+            };
+            
             set({ 
-                summary,
+                summary: finalSummary,
                 trends,
                 accountsOverview,
                 timeRange,

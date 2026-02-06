@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { 
     Clock, 
     ArrowUpRight, 
@@ -9,10 +9,12 @@ import {
     Edit,
     Trash2
 } from 'lucide-react'
+import { useTransactionStore } from '../../store/transactionStore'
 import SkeletonLoader from '../common/SkeletonLoader'
 
-const RecentTransactions = ({ summary, formatCurrency, loading }) => {
-    const recentTransactions = summary?.recentTransactions || [];
+const RecentTransactions = ({ formatCurrency, loading }) => {
+    const { transactions } = useTransactionStore();
+    const recentTransactions = transactions.slice(0, 5); // Get first 5 transactions
 
     const getTransactionIcon = (type) => {
         switch (type) {
@@ -197,9 +199,9 @@ const RecentTransactions = ({ summary, formatCurrency, loading }) => {
                     <p className="text-sm text-base-content/40 mb-4">
                         Start adding transactions to see your recent activity
                     </p>
-                    <button className="btn btn-primary btn-sm">
+                    <Link to="/dashboard?addTransaction=true" className="btn btn-primary btn-sm">
                         Add Your First Transaction
-                    </button>
+                    </Link>
                 </div>
             )}
 

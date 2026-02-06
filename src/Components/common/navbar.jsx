@@ -5,7 +5,6 @@ import {
     Home, 
     Receipt, 
     FileText, 
-    Settings, 
     User, 
     LogOut,
     Menu,
@@ -17,20 +16,16 @@ function Navbar() {
     const { user, logout } = useAuthStore();
     const location = useLocation();
     const navigate = useNavigate();
-    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const navItems = [
         { name: 'Overview', path: '/dashboard', icon: Home },
         { name: 'Transactions', path: '/transactions', icon: Receipt },
-        { name: 'Reports', path: '/reports', icon: FileText },
-        { name: 'Settings', path: '/settings', icon: Settings },
     ];
 
     const handleLogout = () => {
         logout();
         navigate('/');
-        setIsProfileDropdownOpen(false);
     };
 
     const isActivePath = (path) => {
@@ -89,7 +84,6 @@ function Navbar() {
                     <button
                         tabIndex={0}
                         role="button"
-                        onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                         className="btn btn-ghost btn-circle avatar"
                     >
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
@@ -107,23 +101,15 @@ function Navbar() {
                     
                     <ul
                         tabIndex={0}
-                        className={`dropdown-content z-50 p-2 shadow-lg bg-base-100 rounded-box w-52 ${
-                            isProfileDropdownOpen ? '' : 'hidden'
-                        }`}
+                        className="dropdown-content menu z-50 p-2 shadow-lg bg-base-100 rounded-box w-52"
                     >
-                        <li className="menu-title">
-                            <span>{user?.name || 'User'}</span>
-                        </li>
-                        <li>
-                            <Link to="/settings" className="flex items-center gap-2">
-                                <Settings size={16} />
-                                Settings
-                            </Link>
+                        <li className="menu-title px-4 py-2">
+                            <span className="text-sm font-semibold">{user?.name || 'User'}</span>
                         </li>
                         <li>
                             <button
                                 onClick={handleLogout}
-                                className="flex items-center gap-2 text-error"
+                                className="flex items-center gap-2 text-error hover:bg-error/10"
                             >
                                 <LogOut size={16} />
                                 Logout

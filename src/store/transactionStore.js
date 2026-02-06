@@ -33,9 +33,12 @@ export const useTransactionStore = create((set, get) => ({
             const url = params.toString() ? `/transactions?${params.toString()}` : "/transactions";
             const res = await axios.get(url);
             
+            // Backend returns { transactions: [...], pagination: {...} }
+            const transactionsArray = res.data.transactions || [];
+            
             set({ 
-                transactions: res.data,
-                filteredTransactions: res.data,
+                transactions: transactionsArray,
+                filteredTransactions: transactionsArray,
                 filters: { ...get().filters, ...filters },
                 loading: false 
             });
@@ -51,17 +54,22 @@ export const useTransactionStore = create((set, get) => ({
         set({ loading: true, error: null });
         try {
             const res = await axios.post("/transactions", transactionData);
+            // Backend returns { message: "...", transaction: {...} }
+            const transaction = res.data.transaction || res.data;
+            
             set((state) => ({ 
-                transactions: [res.data, ...state.transactions],
-                filteredTransactions: [res.data, ...state.filteredTransactions],
+                transactions: Array.isArray(state.transactions) ? [transaction, ...state.transactions] : [transaction],
+                filteredTransactions: Array.isArray(state.filteredTransactions) ? [transaction, ...state.filteredTransactions] : [transaction],
                 loading: false 
             }));
             toast.success("Transaction added successfully ✅");
-            return res.data;
+            return transaction;
         } catch (err) {
-            set({ error: err.response?.data?.message || "Failed to add transaction" });
-            toast.error(err.response?.data?.message || "Failed to add transaction");
+            const errorMessage = err.response?.data?.message || "Failed to add transaction";
+            set({ error: errorMessage });
+            toast.error(errorMessage);
             set({ loading: false });
+            console.error("Transaction creation error:", err.response?.data || err);
             return null;
         }
     },
@@ -71,21 +79,26 @@ export const useTransactionStore = create((set, get) => ({
         set({ loading: true, error: null });
         try {
             const res = await axios.put(`/transactions/${id}`, transactionData);
+            // Backend returns { message: "...", transaction: {...} }
+            const transaction = res.data.transaction || res.data;
+            
             set((state) => ({
                 transactions: state.transactions.map(tx => 
-                    tx._id === id ? res.data : tx
+                    tx._id === id ? transaction : tx
                 ),
                 filteredTransactions: state.filteredTransactions.map(tx => 
-                    tx._id === id ? res.data : tx
+                    tx._id === id ? transaction : tx
                 ),
                 loading: false
             }));
             toast.success("Transaction updated successfully ✅");
-            return res.data;
+            return transaction;
         } catch (err) {
-            set({ error: err.response?.data?.message || "Failed to update transaction" });
-            toast.error(err.response?.data?.message || "Failed to update transaction");
+            const errorMessage = err.response?.data?.message || "Failed to update transaction";
+            set({ error: errorMessage });
+            toast.error(errorMessage);
             set({ loading: false });
+            console.error("Transaction update error:", err.response?.data || err);
             return null;
         }
     },

@@ -24,11 +24,14 @@ const ExpenseBreakdownChart = ({ summary, loading, formatCurrency }) => {
     }
 
     // Prepare chart data
-    const chartData = summary?.categoryBreakdown?.map(item => ({
-        name: item.category,
-        value: item.amount,
-        percentage: item.percentage
-    })) || [];
+    const categoryBreakdown = summary?.categoryBreakdown || [];
+    const chartData = categoryBreakdown
+        .filter(item => item._id?.type === 'expense')
+        .map(item => ({
+            name: item._id?.name || 'Unknown',
+            value: item.total || 0,
+            percentage: item.percentage || 0
+        }));
 
     // Color palette for the chart
     const COLORS = [
@@ -44,11 +47,12 @@ const ExpenseBreakdownChart = ({ summary, loading, formatCurrency }) => {
         '#84cc16', // lime
     ];
 
-    const totalExpenses = summary?.monthlyExpenses || 0;
+    const totalExpenses = chartData.reduce((sum, item) => sum + item.value, 0);
 
     const CustomTooltip = ({ active, payload }) => {
         if (active && payload && payload.length) {
             const data = payload[0];
+            const percentage = data.payload?.percentage || 0;
             return (
                 <div className="bg-base-100 border border-base-200 rounded-lg p-3 shadow-lg">
                     <p className="text-sm font-medium mb-1">{data.name}</p>
@@ -56,7 +60,7 @@ const ExpenseBreakdownChart = ({ summary, loading, formatCurrency }) => {
                         Amount: <span className="font-semibold">{formatCurrency(data.value)}</span>
                     </p>
                     <p className="text-sm">
-                        Percentage: <span className="font-semibold">{data.payload.percentage.toFixed(1)}%</span>
+                        Percentage: <span className="font-semibold">{percentage.toFixed(1)}%</span>
                     </p>
                 </div>
             );
@@ -69,7 +73,8 @@ const ExpenseBreakdownChart = ({ summary, loading, formatCurrency }) => {
         const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
         const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
 
-        if (percentage < 5) return null; // Don't show label for small slices
+        const percentValue = percentage || 0;
+        if (percentValue < 5) return null; // Don't show label for small slices
 
         return (
             <text 
@@ -80,7 +85,7 @@ const ExpenseBreakdownChart = ({ summary, loading, formatCurrency }) => {
                 dominantBaseline="central"
                 className="text-xs font-medium"
             >
-                {`${percentage.toFixed(0)}%`}
+                {`${percentValue.toFixed(0)}%`}
             </text>
         );
     };
@@ -153,7 +158,7 @@ const ExpenseBreakdownChart = ({ summary, loading, formatCurrency }) => {
                                             {formatCurrency(item.value)}
                                         </p>
                                         <p className="text-xs text-base-content/60">
-                                            {item.percentage.toFixed(1)}%
+                                            {(item.percentage || 0).toFixed(1)}%
                                         </p>
                                     </div>
                                 </div>

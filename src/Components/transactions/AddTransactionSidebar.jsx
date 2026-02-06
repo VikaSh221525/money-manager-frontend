@@ -6,21 +6,22 @@ import { useAccountStore } from '../../store/accountStore'
 import { useCategoryStore } from '../../store/categoryStore'
 import { useDashboardStore } from '../../store/dashboardStore'
 
-const AddTransactionSidebar = ({ isOpen, onClose }) => {
+const AddTransactionSidebar = ({ isOpen, onClose, editingTransaction = null }) => {
     const [transactionType, setTransactionType] = useState('expense');
     const [isRecurring, setIsRecurring] = useState(false);
     const {
         register,
         handleSubmit,
         reset,
+        setValue,
         formState: { errors },
         watch
     } = useForm();
 
-    const { createTransaction, loading } = useTransactionStore();
+    const { createTransaction, updateTransaction, loading, getTransactions } = useTransactionStore();
     const { accounts, getAccounts } = useAccountStore();
     const { categories, getCategories } = useCategoryStore();
-    const { getDashboardSummary } = useDashboardStore();
+    const { getDashboardSummary, loadDashboardData, timeRange } = useDashboardStore();
 
     const watchedAccount = watch('account');
 
@@ -28,38 +29,90 @@ const AddTransactionSidebar = ({ isOpen, onClose }) => {
         if (isOpen) {
             getAccounts();
             getCategories();
-            reset();
-            setTransactionType('expense');
-            setIsRecurring(false);
+            
+            if (editingTransaction) {
+                // Populate form with editing transaction data
+                setTransactionType(editingTransaction.type);
+                setIsRecurring(editingTransaction.isRecurring || false);
+                
+                // Format date for datetime-local input
+                const date = new Date(editingTransaction.date);
+                const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+                    .toISOString()
+                    .slice(0, 16);
+                
+                reset({
+                    description: editingTransaction.description,
+                    amount: editingTransaction.amount,
+                    category: editingTransaction.category?._id || '',
+                    account: editingTransaction.account?._id || '',
+                    toAccount: editingTransaction.toAccount?._id || '',
+                    division: editingTransaction.division,
+                    date: localDateTime,
+                    tags: editingTransaction.tags?.join(', ') || '',
+                    recurringPattern: editingTransaction.recurringPattern || ''
+                });
+            } else {
+                // Set default date to current date/time for new transactions
+                const now = new Date();
+                const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+                    .toISOString()
+                    .slice(0, 16);
+                reset({
+                    date: localDateTime
+                });
+                setTransactionType('expense');
+                setIsRecurring(false);
+            }
         }
-    }, [isOpen, getAccounts, getCategories, reset]);
+    }, [isOpen, editingTransaction, getAccounts, getCategories, reset]);
 
     const onSubmit = async (data) => {
+        console.log("Form data before processing:", data);
+        
         const transactionData = {
-            ...data,
             type: transactionType,
             amount: parseFloat(data.amount),
-            date: new Date(data.date).toISOString(),
+            description: data.description,
+            date: data.date,
+            division: data.division,
+            account: data.account,
             tags: data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
-            isRecurring: isRecurring,
-            recurringPattern: isRecurring ? data.recurringPattern : undefined,
+            isRecurring: isRecurring
         };
 
+        // Add category for income/expense
         if (transactionType !== 'transfer') {
-            delete transactionData.toAccount;
+            transactionData.category = data.category;
         }
 
+        // Add toAccount for transfers
         if (transactionType === 'transfer') {
-            delete transactionData.category;
+            transactionData.toAccount = data.toAccount;
         }
 
-        if (!isRecurring) {
-            delete transactionData.recurringPattern;
+        // Add recurring pattern if recurring is enabled
+        if (isRecurring && data.recurringPattern) {
+            transactionData.recurringPattern = data.recurringPattern;
         }
 
-        const success = await createTransaction(transactionData);
+        console.log("Transaction data being sent to API:", transactionData);
+
+        let success;
+        if (editingTransaction) {
+            // Update existing transaction
+            success = await updateTransaction(editingTransaction._id, transactionData);
+        } else {
+            // Create new transaction
+            success = await createTransaction(transactionData);
+        }
+
         if (success) {
-            getDashboardSummary();
+            // Reload all data to reflect the changes
+            await Promise.all([
+                loadDashboardData(timeRange),
+                getTransactions()
+            ]);
             onClose();
             reset();
         }
@@ -87,7 +140,9 @@ const AddTransactionSidebar = ({ isOpen, onClose }) => {
 
             <div className="fixed right-0 top-0 h-full w-full sm:w-96 bg-base-100 shadow-2xl z-50 overflow-y-auto">
                 <div className="flex items-center justify-between p-4 border-b border-base-200 sticky top-0 bg-base-100 z-10">
-                    <h3 className="text-lg font-semibold">Add Transaction</h3>
+                    <h3 className="text-lg font-semibold">
+                        {editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
+                    </h3>
                     <button onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
                         <X size={18} />
                     </button>
@@ -313,7 +368,9 @@ const AddTransactionSidebar = ({ isOpen, onClose }) => {
                                 </label>
                                 <select
                                     className="select select-bordered select-sm"
-                                    {...register('recurringPattern', { required: 'Pattern is required for recurring transactions' })}
+                                    {...register('recurringPattern', { 
+                                        required: isRecurring ? 'Pattern is required for recurring transactions' : false 
+                                    })}
                                 >
                                     <option value="">Select pattern</option>
                                     <option value="daily">Daily</option>

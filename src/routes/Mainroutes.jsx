@@ -4,8 +4,6 @@ import SignUpPage from '../pages/SignUpPage'
 import LoginPage from '../pages/LoginPage'
 import Dashboard from '../pages/Dashboard'
 import TransactionsPage from '../pages/TransactionsPage'
-import ReportsPage from '../pages/ReportsPage'
-import SettingsPage from '../pages/SettingsPage'
 import NotFound from '../pages/NotFound'
 import ProtectedRoute from './ProtectedRoute'
 import PublicRoute from './PublicRoute'
@@ -49,22 +47,6 @@ function Mainroutes() {
                 element={
                     <ProtectedRoute>
                         <TransactionsPage />
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/reports"
-                element={
-                    <ProtectedRoute>
-                        <ReportsPage />
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/settings"
-                element={
-                    <ProtectedRoute>
-                        <SettingsPage />
                     </ProtectedRoute>
                 }
             />

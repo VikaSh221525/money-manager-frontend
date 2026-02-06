@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useSearchParams, useNavigate } from 'react-router'
 import {
     TrendingUp,
     TrendingDown,
@@ -27,7 +27,8 @@ import RecentTransactions from '../Components/dashboard/RecentTransactions'
 import SkeletonLoader from '../Components/common/SkeletonLoader'
 
 function Dashboard() {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const [showAddTransaction, setShowAddTransaction] = useState(false);
     const [showCreateAccount, setShowCreateAccount] = useState(false);
     const [timeRange, setTimeRange] = useState('month');
@@ -53,15 +54,22 @@ function Dashboard() {
     useEffect(() => {
         if (searchParams.get('addTransaction') === 'true') {
             setShowAddTransaction(true);
+            // Clear the URL parameter to prevent auto-opening on refresh
+            setSearchParams({});
         }
-    }, [searchParams]);
+    }, [searchParams, setSearchParams]);
 
     // Load initial data
     useEffect(() => {
-        loadDashboardData(timeRange);
-        getAccounts();
-        getCategories();
-        getTransactions();
+        const loadData = async () => {
+            await Promise.all([
+                loadDashboardData(timeRange),
+                getAccounts(),
+                getCategories(),
+                getTransactions()
+            ]);
+        };
+        loadData();
     }, []);
 
     // Handle time range change
@@ -219,7 +227,6 @@ function Dashboard() {
 
                 {/* Recent Transactions */}
                 <RecentTransactions
-                    summary={summary}
                     formatCurrency={formatCurrency}
                     loading={loading}
                 />
