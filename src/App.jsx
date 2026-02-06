@@ -10,10 +10,11 @@ function App() {
     if (token) {
       getMe();
     }
-  }, [getMe, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   return (
-    <div>
+    <div className="min-h-screen bg-base-200">
       <Mainroutes />
     </div>
   )

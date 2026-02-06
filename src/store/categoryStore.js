@@ -13,8 +13,28 @@ export const useCategoryStore = create((set, get) => ({
         set({ loading: true, error: null });
         try {
             const res = await axios.get("/categories");
-            set({ categories: res.data });
+            console.log("Categories API response:", res.data);
+
+            // Backend returns { categories: { income: [...], expense: [...] }, total: X }
+            // We need to flatten it into a single array
+            let categoriesArray = [];
+            if (res.data.categories) {
+                if (Array.isArray(res.data.categories)) {
+                    // If it's already an array
+                    categoriesArray = res.data.categories;
+                } else if (typeof res.data.categories === 'object') {
+                    // If it's grouped by type {income: [...], expense: [...]}
+                    categoriesArray = [
+                        ...(res.data.categories.income || []),
+                        ...(res.data.categories.expense || [])
+                    ];
+                }
+            }
+
+            console.log("Parsed categories array:", categoriesArray);
+            set({ categories: categoriesArray });
         } catch (err) {
+            console.error("Get categories error:", err);
             set({ error: err.response?.data?.message || "Failed to fetch categories" });
             toast.error(err.response?.data?.message || "Failed to fetch categories");
         } finally {
@@ -27,9 +47,9 @@ export const useCategoryStore = create((set, get) => ({
         set({ loading: true, error: null });
         try {
             const res = await axios.post("/categories", categoryData);
-            set((state) => ({ 
+            set((state) => ({
                 categories: [...state.categories, res.data],
-                loading: false 
+                loading: false
             }));
             toast.success("Category created successfully ✅");
             return res.data;
@@ -47,7 +67,7 @@ export const useCategoryStore = create((set, get) => ({
         try {
             const res = await axios.put(`/categories/${id}`, categoryData);
             set((state) => ({
-                categories: state.categories.map(cat => 
+                categories: state.categories.map(cat =>
                     cat._id === id ? res.data : cat
                 ),
                 loading: false

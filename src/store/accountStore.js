@@ -12,8 +12,13 @@ export const useAccountStore = create((set, get) => ({
         set({ loading: true, error: null });
         try {
             const res = await axios.get("/accounts");
-            set({ accounts: res.data });
+            console.log("Accounts API response:", res.data);
+            // Backend returns { accounts: [...] }
+            const accountsArray = res.data.accounts || res.data || [];
+            console.log("Parsed accounts array:", accountsArray);
+            set({ accounts: accountsArray });
         } catch (err) {
+            console.error("Get accounts error:", err);
             set({ error: err.response?.data?.message || "Failed to fetch accounts" });
             toast.error(err.response?.data?.message || "Failed to fetch accounts");
         } finally {
@@ -26,9 +31,9 @@ export const useAccountStore = create((set, get) => ({
         set({ loading: true, error: null });
         try {
             const res = await axios.post("/accounts", accountData);
-            set((state) => ({ 
+            set((state) => ({
                 accounts: [...state.accounts, res.data],
-                loading: false 
+                loading: false
             }));
             toast.success("Account created successfully ✅");
             return res.data;
@@ -46,7 +51,7 @@ export const useAccountStore = create((set, get) => ({
         try {
             const res = await axios.put(`/accounts/${id}`, accountData);
             set((state) => ({
-                accounts: state.accounts.map(acc => 
+                accounts: state.accounts.map(acc =>
                     acc._id === id ? res.data : acc
                 ),
                 loading: false
